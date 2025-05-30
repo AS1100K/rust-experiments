@@ -10,9 +10,7 @@ planning to work on.
 
 ## Crates Available
 
-_No crates available_
-
-<!-- TODO: Add Table of Contents for crates available -->
+1. [`kornia_aprilgrid`](./kornia_aprilgrid): A basic example with kornia-rs, and aprilgrid.
 
 ## License
 
