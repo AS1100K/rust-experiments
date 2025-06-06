@@ -58,7 +58,9 @@ fn benchmark(c: &mut Criterion) {
                 let window_iter = img.0.as_slice().windows(TILE_SIZE * TILE_SIZE);
 
                 for window in window_iter {
-                    std::hint::black_box(window);
+                    for px in window {
+                        std::hint::black_box(px);
+                    }
                 }
             });
         });
@@ -82,7 +84,12 @@ fn benchmark(c: &mut Criterion) {
                 let tile_iter = TileIterator::from_image(&img.0, TILE_SIZE);
 
                 for tile in tile_iter {
-                    std::hint::black_box::<Vec<&[u8]>>(tile);
+                    for px_row in tile {
+                        let px_row = *px_row;
+                        for px in px_row {
+                            std::hint::black_box(px);
+                        }
+                    }
                 }
             })
         });

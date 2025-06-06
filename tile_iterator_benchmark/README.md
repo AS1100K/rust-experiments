@@ -6,6 +6,9 @@ The goal is to compare the performance of three iterator types:
 1. **Window Iterator**: Iterates over fixed-size windows of the image data. [`slice::windows`](https://doc.rust-lang.org/stable/std/primitive.slice.html#method.windows)
 2. **Normal Iterator**: Iterates over each pixel in the image sequentially.
 3. **Tile Iterator**: Iterates over tiles of image, where each tile is a square sub-region of the image.
+    They are two implementations of Tile Iterator:
+    1. Vec based: Returns `Vec<&'a [T]>`. [See commit `8a6286`](https://github.com/AS1100K/rust-experiments/commit/8a6286c2a2439fbbeee34c5c8629c078b471b510)
+    2. Slice based: Returns `&'a [&'a [T]]` and avoid creation of data again and again.
 
 ## Project Structure
 
@@ -24,17 +27,33 @@ The benchmarking script downloads three images of varying resolutions:
 - **Medium Image**: 1920 x 1281 pixels
 - **Small Image**: 640 x 427 pixels
 
-### Benchmark Results
+### Benchmark Results (AMD Ryzen 7 5800X)
 
-| Iterator Type   | Large Image | Medium Image | Small Image|
-|-----------------|-------------|--------------|------------|
-| Window Iterator | 26.105 ms   | 1.9250 ms    | 212.29 µs  |
-| Normal Iterator | 20.628 ms   | 1.5293 ms    | 169.87 µs  |
-| Tile Iterator   | 32.786 ms   | 2.4703 ms    | 275.24 µs  |
+| Iterator Type         | Large Image | Medium Image | Small Image|
+|-----------------------|-------------|--------------|------------|
+| Window Iterator       | 168.17 ms   | 12.508 ms    | 1.3877 ms  |
+| Normal Iterator       | 20.773 ms   | 1.5397 ms    | 170.64 µs  |
+| Tile Iterator (vec)   | 41.775 ms   | 3.1059 ms    | 344.15 µs  |
+| Tile Iterator (slice) | 20.770 ms   | 1.5495 ms    | 172.96 µs  |
 
 ### Benchmark Environment
 
 - OS: **_Ubuntu 24.04.2 LTS_**
 - Processor: **_AMD Ryzen 7 5800X × 16_**
 - Memory: **_32 GiB_**
+- rustc: **_1.87.0_**
+
+### Benchmark Results (NVIDIA Orin Nano 8GB Developer Kit)
+
+| Iterator Type         | Large Image | Medium Image | Small Image|
+|-----------------------|-------------|--------------|------------|
+| Window Iterator       | 462.14 ms   | 34.334 ms    | 3.8129 ms  |
+| Normal Iterator       | 57.502 ms   | 4.2748 ms    | 475.15 µs  |
+| Tile Iterator (vec)   | 90.855 ms   | 6.7772 ms    | 750.29 µs  |
+| Tile Iterator (slice) | 44.467 ms   | 3.3949 ms    | 377.95 µs  |
+
+### Benchmark Environment
+
+- OS: **_Ubuntu 24.04.5 LTS_**
+- Device: **_NVIDIA Orin Nano 8GB Developer Kit_**
 - rustc: **_1.87.0_**

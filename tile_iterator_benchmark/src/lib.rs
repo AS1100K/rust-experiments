@@ -14,6 +14,7 @@ pub struct TileIterator<'a, T> {
     last_tile_y_px: usize,
     next_tile_x_index: usize,
     next_tile_y_index: usize,
+    buffer: Vec<&'a [T]>,
 }
 
 impl<'a, T> TileIterator<'a, T> {
@@ -43,12 +44,13 @@ impl<'a, T> TileIterator<'a, T> {
             last_tile_y_px,
             next_tile_x_index: 0,
             next_tile_y_index: 0,
+            buffer: Vec::with_capacity(tile_size),
         }
     }
 }
 
 impl<'a, T> Iterator for TileIterator<'a, T> {
-    type Item = Vec<&'a [T]>;
+    type Item = &'a [&'a [T]];
 
     fn next(&mut self) -> Option<Self::Item> {
         // Stop iteration if we've processed all tiles
@@ -70,15 +72,14 @@ impl<'a, T> Iterator for TileIterator<'a, T> {
             self.tile_size
         };
 
-        let mut buffer = Vec::with_capacity(self.tile_size);
-
+        self.buffer.clear();
         for y_px in 0..tile_y_px {
             let row = ((self.next_tile_y_index * self.tile_size) + y_px) * self.img_size.width;
             let start_index = row + (self.next_tile_x_index * self.tile_size);
             let end_index = start_index + tile_x_px;
 
             let row_pxs = &self.data[start_index..end_index];
-            buffer.push(row_pxs);
+            self.buffer.push(row_pxs);
         }
 
         // Update indices
@@ -88,7 +89,10 @@ impl<'a, T> Iterator for TileIterator<'a, T> {
             self.next_tile_y_index += 1;
         }
 
-        Some(buffer)
+        let buffer_slice =
+            unsafe { std::slice::from_raw_parts(self.buffer.as_mut_ptr(), tile_y_px) };
+
+        Some(buffer_slice)
     }
 }
 
@@ -114,6 +118,7 @@ mod tests {
 
         for tile in tile_iter {
             for tile_row in tile {
+                let tile_row = *tile_row;
                 for px in tile_row {
                     assert_eq!(*px, 127);
                     counter += 1;
