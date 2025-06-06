@@ -8,6 +8,11 @@ planning to work on.
 > Please don't use any of these crates in production, as they are usally unmaintained and might not be
 > performance optimized. Feel free to take any code but you will be reponsible for it's maintainance.
 
+## Benchmarks Available
+
+1. [`tile_iterator_benchmark`](./tile_iterator_benchmark): Benchmarking performance of a tile-based iterator
+  over slice of linear data.
+
 ## Crates Available
 
 1. [`kornia_aprilgrid`](./kornia_aprilgrid): A basic example with kornia-rs, and aprilgrid.

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["./kornia_aprilgrid"]
+members = ["./kornia_aprilgrid", "./tile_iterator_benchmark"]
 
 [workspace.package]
 authors = ["Aditya Kumar <git@adityais.dev>"]
