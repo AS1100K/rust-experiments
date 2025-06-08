@@ -77,6 +77,21 @@ fn benchmark(c: &mut Criterion) {
         });
     }
 
+    // Chunk based Iterator
+    for img in &images {
+        group.bench_with_input(BenchmarkId::new("ChunckIterator", img.1), img.1, |b, _| {
+            b.iter(|| {
+                for y_chunk in img.0.as_slice().chunks(img.0.width()) {
+                    for pxs in y_chunk.chunks(TILE_SIZE) {
+                        for px in pxs {
+                            std::hint::black_box(px);
+                        }
+                    }
+                }
+            });
+        });
+    }
+
     // Tile based Iterator
     for img in &images {
         group.bench_with_input(BenchmarkId::new("TileIterator", img.1), img.1, |b, _| {

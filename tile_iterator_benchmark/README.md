@@ -5,7 +5,9 @@ The goal is to compare the performance of three iterator types:
 
 1. **Window Iterator**: Iterates over fixed-size windows of the image data. [`slice::windows`](https://doc.rust-lang.org/stable/std/primitive.slice.html#method.windows)
 2. **Normal Iterator**: Iterates over each pixel in the image sequentially.
-3. **Tile Iterator**: Iterates over tiles of image, where each tile is a square sub-region of the image.
+3. **Chunks Iterator**: Similar to Tile Iterator but uses [`slice::chunks`](https://doc.rust-lang.org/std/primitive.slice.html#method.chunks) while iterating over
+    `1 x TILE_SIZE`.
+4. **Tile Iterator**: Iterates over tiles of image i.e. `TILE_SIZE x TILE_SIZE`, where each tile is a square sub-region of the image.
     They are two implementations of Tile Iterator:
     1. Vec based: Returns `Vec<&'a [T]>`. [See commit `8a6286`](https://github.com/AS1100K/rust-experiments/commit/8a6286c2a2439fbbeee34c5c8629c078b471b510)
     2. Slice based: Returns `&'a [&'a [T]]` and avoid creation of data again and again.
@@ -33,6 +35,7 @@ The benchmarking script downloads three images of varying resolutions:
 |-----------------------|-------------|--------------|------------|
 | Window Iterator       | 168.17 ms   | 12.508 ms    | 1.3877 ms  |
 | Normal Iterator       | 20.773 ms   | 1.5397 ms    | 170.64 µs  |
+| Chunks Iterator       | 30.192 ms   | 2.2656 ms    | 257.30 µs  |
 | Tile Iterator (vec)   | 41.775 ms   | 3.1059 ms    | 344.15 µs  |
 | Tile Iterator (slice) | 20.770 ms   | 1.5495 ms    | 172.96 µs  |
 
@@ -49,6 +52,7 @@ The benchmarking script downloads three images of varying resolutions:
 |-----------------------|-------------|--------------|------------|
 | Window Iterator       | 462.14 ms   | 34.334 ms    | 3.8129 ms  |
 | Normal Iterator       | 57.502 ms   | 4.2748 ms    | 475.15 µs  |
+| Chunks Iterator       | ---         | ---          | ---        |
 | Tile Iterator (vec)   | 90.855 ms   | 6.7772 ms    | 750.29 µs  |
 | Tile Iterator (slice) | 44.467 ms   | 3.3949 ms    | 377.95 µs  |
 
