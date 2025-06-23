@@ -1,0 +1,19 @@
+[package]
+name = "kornia_apriltag_visualization"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+license-file.workspace = true
+
+[dependencies]
+rerun = "0.23"
+kornia-image = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster" }
+kornia-imgproc = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster" }
+kornia-apriltag = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster" }
+kornia-io = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster", features = [
+    "gstreamer",
+] }
+ctrlc = "3.4"
+rand = "0.9"
