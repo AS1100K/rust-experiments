@@ -6,12 +6,18 @@ use std::{
     },
 };
 
-use kornia_apriltag::{threshold::TileMinMax, union_find::UnionFind, utils::Pixel};
+use kornia_apriltag::{
+    family::TagFamily, threshold::TileMinMax, union_find::UnionFind, utils::Pixel,
+};
 use kornia_image::{Image, ImageSize, allocator::CpuAllocator};
 use kornia_io::{fps_counter::FpsCounter, stream::V4L2CameraConfig};
 
-use crate::segmentation::{debug_connected_components, debug_gradient_clusters};
+use crate::{
+    quad::debug_quad_fitting,
+    segmentation::{debug_connected_components, debug_gradient_clusters},
+};
 
+mod quad;
 mod segmentation;
 
 // TODO: add CLI arguments
@@ -55,6 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut binary_image = Image::from_size_val(first_frame.size(), Pixel::Skip, CpuAllocator)?;
     let mut segmentation_image = Image::from_size_val(first_frame.size(), 0u8, CpuAllocator)?;
     let mut cluster_image = Image::from_size_val(first_frame.size(), 0u8, CpuAllocator)?;
+    let mut quads_image = Image::from_size_val(first_frame.size(), 0u8, CpuAllocator)?;
 
     // Preallocated extras
     let mut tile_min_max = TileMinMax::new(binary_image.size(), 4);
@@ -87,6 +94,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &binary_image,
             &mut uf,
             &mut clusters,
+        );
+
+        // Quad Fitting
+        // TODO: Avoid multiple allocations
+        let quads = kornia_apriltag::quad::fit_quads(
+            &binary_image,
+            &TagFamily::TAG36_H11,
+            &mut clusters,
+            5,
+            kornia_apriltag::quad::FitQuadOpts::default(),
         );
 
         // Log each step in rerun
@@ -131,6 +148,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &rerun::Image::from_elements(
                 cluster_image.as_slice(),
                 cluster_image.size().into(),
+                rerun::ColorModel::RGB,
+            ),
+        )?;
+
+        debug_quad_fitting(&img, &mut quads_image, &quads);
+        rec.log_static(
+            "Quads",
+            &rerun::Image::from_elements(
+                quads_image.as_slice(),
+                quads_image.size().into(),
                 rerun::ColorModel::RGB,
             ),
         )?;

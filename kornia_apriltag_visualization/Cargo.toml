@@ -9,10 +9,11 @@ license-file.workspace = true
 
 [dependencies]
 rerun = "0.23"
-kornia-image = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster" }
-kornia-imgproc = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster" }
-kornia-apriltag = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster" }
-kornia-io = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-cluster", features = [
+# If this branch doesn't exists, then try the main branch because the PR might have been merged
+kornia-image = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-quad-fitting" }
+kornia-imgproc = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-quad-fitting" }
+kornia-apriltag = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-quad-fitting" }
+kornia-io = { git = "https://github.com/kornia/kornia-rs.git", branch = "as1100k/apriltag-quad-fitting", features = [
     "gstreamer",
 ] }
 ctrlc = "3.4"
