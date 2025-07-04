@@ -7,7 +7,8 @@ use std::{
 };
 
 use kornia_apriltag::{
-    family::TagFamily, threshold::TileMinMax, union_find::UnionFind, utils::Pixel,
+    decode::QuickDecode, family::TagFamily, threshold::TileMinMax, union_find::UnionFind,
+    utils::Pixel,
 };
 use kornia_image::{Image, ImageSize, allocator::CpuAllocator};
 use kornia_io::{fps_counter::FpsCounter, stream::V4L2CameraConfig};
@@ -53,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let first_frame = webcam
-        .grab()?
+        .grab_rgb8()?
         .ok_or("Failed to fetch the initial frame, to get info about image size")?;
 
     // Preallocated Image buffers
@@ -62,21 +63,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut segmentation_image = Image::from_size_val(first_frame.size(), 0u8, CpuAllocator)?;
     let mut cluster_image = Image::from_size_val(first_frame.size(), 0u8, CpuAllocator)?;
     let mut quads_image = Image::from_size_val(first_frame.size(), 0u8, CpuAllocator)?;
+    // let mut detections_image = Image::from_size_val(first_frame.size(), 0u8, CpuAllocator)?;
 
     // Preallocated extras
     let mut tile_min_max = TileMinMax::new(binary_image.size(), 4);
     let mut uf = UnionFind::new(first_frame.width() * first_frame.height());
     let mut clusters = HashMap::new();
+    let mut quick_decode = QuickDecode::new(&TagFamily::TAG36_H11);
 
     drop(first_frame);
 
     while !cancel_token.load(Ordering::SeqCst) {
-        let Some(img) = webcam.grab()? else {
+        let Some(img) = webcam.grab_rgb8()? else {
             continue;
         };
 
+        rec.log(
+            "Original Frame",
+            &rerun::Image::from_elements(img.as_slice(), img.size().into(), rerun::ColorModel::RGB),
+        )?;
+
+        rec.log(
+            "Detected Tags",
+            &rerun::Image::from_elements(img.as_slice(), img.size().into(), rerun::ColorModel::RGB),
+        )?;
+
         // Convert to grayscale
         kornia_imgproc::color::gray_from_rgb_u8(&img, &mut grayscale_image)?;
+
+        // rec.log(
+        //     "Grayscale Frame",
+        //     &rerun::Image::from_elements(
+        //         grayscale_image.as_slice(),
+        //         grayscale_image.size().into(),
+        //         rerun::ColorModel::L,
+        //     ),
+        // )?;
 
         // Convert to binary
         kornia_apriltag::threshold::adaptive_threshold(
@@ -86,54 +108,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             20,
         )?;
 
-        // Find Connected Components
-        kornia_apriltag::segmentation::find_connected_components(&binary_image, &mut uf)?;
-
-        // Find Gradient Clusters
-        kornia_apriltag::segmentation::find_gradient_clusters(
-            &binary_image,
-            &mut uf,
-            &mut clusters,
-        );
-
-        // Quad Fitting
-        // TODO: Avoid multiple allocations
-        let quads = kornia_apriltag::quad::fit_quads(
-            &binary_image,
-            &TagFamily::TAG36_H11,
-            &mut clusters,
-            5,
-            kornia_apriltag::quad::FitQuadOpts::default(),
-        );
-
-        // Log each step in rerun
-        rec.log_static(
-            "Original Frame",
-            &rerun::Image::from_elements(img.as_slice(), img.size().into(), rerun::ColorModel::RGB),
-        )?;
-
-        rec.log_static(
-            "Grayscale Frame",
-            &rerun::Image::from_elements(
-                grayscale_image.as_slice(),
-                grayscale_image.size().into(),
-                rerun::ColorModel::L,
-            ),
-        )?;
-
         let binary_slice = unsafe {
             std::slice::from_raw_parts(
                 binary_image.as_slice().as_ptr() as *const u8,
                 binary_image.as_slice().len(),
             )
         };
-        rec.log_static(
+        rec.log(
             "Adaptive Threshold Frame",
             &rerun::Image::from_elements(binary_slice, img.size().into(), rerun::ColorModel::L),
         )?;
 
+        // Find Connected Components
+        kornia_apriltag::segmentation::find_connected_components(&binary_image, &mut uf)?;
+
         debug_connected_components(&mut segmentation_image, &mut uf);
-        rec.log_static(
+        rec.log(
             "Connected Components",
             &rerun::Image::from_elements(
                 segmentation_image.as_slice(),
@@ -142,8 +132,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ),
         )?;
 
+        // Find Gradient Clusters
+        kornia_apriltag::segmentation::find_gradient_clusters(
+            &binary_image,
+            &mut uf,
+            &mut clusters,
+        );
+
         debug_gradient_clusters(&mut cluster_image, &clusters);
-        rec.log_static(
+        rec.log(
             "Gradient Clusters",
             &rerun::Image::from_elements(
                 cluster_image.as_slice(),
@@ -152,8 +149,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ),
         )?;
 
+        // Quad Fitting
+        // TODO: Avoid multiple allocations
+        let mut quads = kornia_apriltag::quad::fit_quads(
+            &binary_image,
+            &TagFamily::TAG36_H11,
+            &mut clusters,
+            5,
+            kornia_apriltag::quad::FitQuadOpts::default(),
+        );
+
         debug_quad_fitting(&img, &mut quads_image, &quads);
-        rec.log_static(
+        rec.log(
             "Quads",
             &rerun::Image::from_elements(
                 quads_image.as_slice(),
@@ -161,6 +168,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 rerun::ColorModel::RGB,
             ),
         )?;
+
+        // Detect AprilTag
+        let detections = kornia_apriltag::decode::decode_tags(
+            &grayscale_image,
+            &mut quads,
+            &TagFamily::TAG36_H11,
+            &mut quick_decode,
+            false,
+            0.25,
+        );
+
+        // Collect all tag quads and labels to draw all at once
+        let mut all_coords = Vec::new();
+        let mut all_labels = Vec::new();
+
+        for tag in &detections {
+            let coords = [
+                [tag.quad.corners[0].x, tag.quad.corners[0].y],
+                [tag.quad.corners[1].x, tag.quad.corners[1].y],
+                [tag.quad.corners[2].x, tag.quad.corners[2].y],
+                [tag.quad.corners[3].x, tag.quad.corners[3].y],
+                [tag.quad.corners[0].x, tag.quad.corners[0].y],
+            ];
+            all_coords.push(coords);
+            all_labels.push(tag.id.to_string());
+        }
+
+        if !all_coords.is_empty() {
+            rec.log(
+                "Detected Tags",
+                &rerun::LineStrips2D::new(all_coords).with_labels(all_labels),
+            )?;
+        } else {
+            const NO_LINES: [[f32; 2]; 0] = [];
+            rec.log("Detected Tags", &rerun::LineStrips2D::new([NO_LINES]))?;
+        }
 
         fps_counter.update();
         uf.reset();
