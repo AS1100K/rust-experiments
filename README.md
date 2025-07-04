@@ -16,6 +16,8 @@ planning to work on.
 ## Crates Available
 
 1. [`kornia_aprilgrid`](./kornia_aprilgrid): A basic example with kornia-rs, and aprilgrid.
+2. [`kornia_apriltag_visualization`](./kornia_apriltag_visualization): Visualization of decoding steps of [`kornia-apriltag`](https://github.com/kornia/kornia-rs/tree/main/crates/kornia-apriltag)
+   using [Rerun](https://rerun.io).
 
 ## License
 
