@@ -18,3 +18,15 @@ kornia-io = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306", 
 ] }
 ctrlc = "3.4"
 rand = "0.9"
+
+[dev-dependencies]
+apriltag = "0.4"
+measurements = "0.11"
+noisy_float = "0.2"
+
+criterion = "0.6"
+rayon = "1"
+
+[[bench]]
+name = "synthetic_image"
+harness = false

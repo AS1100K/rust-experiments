@@ -1,0 +1,3 @@
+[submodule "kornia_apriltag_visualization/apriltag_imgs"]
+	path = kornia_apriltag_visualization/apriltag_imgs
+	url = https://github.com/AprilRobotics/apriltag-imgs
