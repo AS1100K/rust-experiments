@@ -7,7 +7,11 @@ use std::{
 };
 
 use kornia_apriltag::{
-    decode::QuickDecode, family::TagFamily, threshold::TileMinMax, union_find::UnionFind,
+    decode::{DecodeTagsOpts, GrayModelPair, SharpeningBuffer},
+    family::TagFamily,
+    quad::FitQuadOpts,
+    threshold::TileMinMax,
+    union_find::UnionFind,
     utils::Pixel,
 };
 use kornia_image::{Image, ImageSize, allocator::CpuAllocator};
@@ -69,7 +73,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut tile_min_max = TileMinMax::new(binary_image.size(), 4);
     let mut uf = UnionFind::new(first_frame.width() * first_frame.height());
     let mut clusters = HashMap::new();
-    let mut quick_decode = QuickDecode::new(&TagFamily::TAG36_H11);
+    let mut gray_model_pair = GrayModelPair::new();
+    let mut sharpening_buffer = SharpeningBuffer::new(&TagFamily::TAG36_H11);
+
+    let fit_quad_opts = FitQuadOpts::default();
+    let decode_tags_opts = DecodeTagsOpts::new(&TagFamily::TAG36_H11, true, 0.25);
 
     drop(first_frame);
 
@@ -77,6 +85,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let Some(img) = webcam.grab_rgb8()? else {
             continue;
         };
+
+        // TEMP FIX: to avoid crash due to gstreamer
+        let img = Image::from_size_slice(img.size(), img.as_slice(), CpuAllocator)?;
 
         rec.log(
             "Original Frame",
@@ -156,7 +167,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &TagFamily::TAG36_H11,
             &mut clusters,
             5,
-            kornia_apriltag::quad::FitQuadOpts::default(),
+            fit_quad_opts,
         );
 
         debug_quad_fitting(&img, &mut quads_image, &quads);
@@ -173,10 +184,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let detections = kornia_apriltag::decode::decode_tags(
             &grayscale_image,
             &mut quads,
-            &TagFamily::TAG36_H11,
-            &mut quick_decode,
-            false,
-            0.25,
+            &decode_tags_opts,
+            &mut gray_model_pair,
+            &mut sharpening_buffer,
         );
 
         // Collect all tag quads and labels to draw all at once
@@ -195,19 +205,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             all_labels.push(tag.id.to_string());
         }
 
-        if !all_coords.is_empty() {
-            rec.log(
-                "Detected Tags",
-                &rerun::LineStrips2D::new(all_coords).with_labels(all_labels),
-            )?;
-        } else {
-            const NO_LINES: [[f32; 2]; 0] = [];
-            rec.log("Detected Tags", &rerun::LineStrips2D::new([NO_LINES]))?;
-        }
+        rec.log(
+            "Detected Tags",
+            &rerun::LineStrips2D::new(all_coords).with_labels(all_labels),
+        )?;
 
         fps_counter.update();
         uf.reset();
         clusters.clear();
+        gray_model_pair.reset();
+        sharpening_buffer.reset();
     }
 
     webcam.close()?;

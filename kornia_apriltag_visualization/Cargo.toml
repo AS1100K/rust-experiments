@@ -9,11 +9,11 @@ license-file.workspace = true
 
 [dependencies]
 rerun = "0.23"
-# If this branch doesn't exists, then try the main branch because the PR might have been merged
-kornia-image = { git = "https://github.com/kornia/kornia-rs.git", rev = "1eb8ab" }
-kornia-imgproc = { git = "https://github.com/kornia/kornia-rs.git", rev = "1eb8ab" }
-kornia-apriltag = { git = "https://github.com/kornia/kornia-rs.git", rev = "1eb8ab" }
-kornia-io = { git = "https://github.com/kornia/kornia-rs.git", rev = "1eb8ab", features = [
+# If this branch/commit doesn't exists, then try the main branch because the PR might have been merged
+kornia-image = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306" }
+kornia-imgproc = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306" }
+kornia-apriltag = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306" }
+kornia-io = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306", features = [
     "gstreamer",
 ] }
 ctrlc = "3.4"
