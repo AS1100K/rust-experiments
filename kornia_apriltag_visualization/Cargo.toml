@@ -7,6 +7,9 @@ publish.workspace = true
 license.workspace = true
 license-file.workspace = true
 
+[profile.release]
+debug = true # For performance profiling
+
 [dependencies]
 rerun = "0.23"
 # If this branch/commit doesn't exists, then try the main branch because the PR might have been merged
@@ -26,6 +29,10 @@ noisy_float = "0.2"
 
 criterion = "0.6"
 rayon = "1"
+
+[[bin]]
+name = "real_img"
+path = "./src/real_img.rs"
 
 [[bench]]
 name = "synthetic_image"
