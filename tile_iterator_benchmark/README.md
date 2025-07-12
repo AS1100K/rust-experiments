@@ -22,6 +22,13 @@ The goal is to compare the performance of three iterator types:
 The `TileIterator` divides an image into smaller rectangular tiles of a fixed size. It allows efficient
 processing of image data in chunks, which can be useful for tasks like parallel processing or memory optimization.
 
+### Safety
+
+Using slice based `TileIterator` is not safe as you can't use all the Iterator function otherwise the program will crash. But using it works fine in `for_each` call as the
+data returned by the iterator doesn't lives long enough and is only valid until the next `Iterator::next` call. There is a discussion on
+[Rust Zulip](https://rust-lang.zulipchat.com/#narrow/channel/122651-general/topic/Safe.20implementation.20of.20TileIterator.20yielding.20borrowed.20slices/near/525086420)
+if you are interested.
+
 ## Benchmarking
 
 The benchmarking script downloads three images of varying resolutions:
