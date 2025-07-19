@@ -7,12 +7,8 @@ use std::{
 };
 
 use kornia_apriltag::{
-    decode::{DecodeTagsOpts, GrayModelPair, SharpeningBuffer},
-    family::TagFamily,
-    quad::FitQuadOpts,
-    threshold::TileMinMax,
-    union_find::UnionFind,
-    utils::Pixel,
+    DecodeTagsConfig, decoder::GrayModelPair, family::TagFamilyKind, threshold::TileMinMax,
+    union_find::UnionFind, utils::Pixel,
 };
 use kornia_image::{Image, ImageSize, allocator::CpuAllocator};
 use kornia_io::{fps_counter::FpsCounter, stream::V4L2CameraConfig};
@@ -74,10 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut uf = UnionFind::new(first_frame.width() * first_frame.height());
     let mut clusters = HashMap::new();
     let mut gray_model_pair = GrayModelPair::new();
-    let mut sharpening_buffer = SharpeningBuffer::new(&TagFamily::TAG36_H11);
-
-    let fit_quad_opts = FitQuadOpts::default();
-    let decode_tags_opts = DecodeTagsOpts::new(&TagFamily::TAG36_H11, true, 0.25);
+    let mut config = DecodeTagsConfig::new(vec![TagFamilyKind::Tag36H11]);
 
     drop(first_frame);
 
@@ -162,13 +155,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Quad Fitting
         // TODO: Avoid multiple allocations
-        let mut quads = kornia_apriltag::quad::fit_quads(
-            &binary_image,
-            &TagFamily::TAG36_H11,
-            &mut clusters,
-            5,
-            fit_quad_opts,
-        );
+        let mut quads = kornia_apriltag::quad::fit_quads(&binary_image, &mut clusters, &config);
 
         debug_quad_fitting(&img, &mut quads_image, &quads);
         rec.log(
@@ -181,12 +168,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
 
         // Detect AprilTag
-        let detections = kornia_apriltag::decode::decode_tags(
+        let detections = kornia_apriltag::decoder::decode_tags(
             &grayscale_image,
             &mut quads,
-            &decode_tags_opts,
+            &mut config,
             &mut gray_model_pair,
-            &mut sharpening_buffer,
         );
 
         // Collect all tag quads and labels to draw all at once
@@ -214,7 +200,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         uf.reset();
         clusters.clear();
         gray_model_pair.reset();
-        sharpening_buffer.reset();
     }
 
     webcam.close()?;

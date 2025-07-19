@@ -6,6 +6,7 @@ edition.workspace = true
 publish.workspace = true
 license.workspace = true
 license-file.workspace = true
+default-run = "kornia_apriltag_visualization"
 
 [profile.release]
 debug = true # For performance profiling
@@ -13,10 +14,10 @@ debug = true # For performance profiling
 [dependencies]
 rerun = "0.23"
 # If this branch/commit doesn't exists, then try the main branch because the PR might have been merged
-kornia-image = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306" }
-kornia-imgproc = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306" }
-kornia-apriltag = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306" }
-kornia-io = { git = "https://github.com/kornia/kornia-rs.git", rev = "563b306", features = [
+kornia-image = { git = "https://github.com/kornia/kornia-rs.git", rev = "d6a8b15" }
+kornia-imgproc = { git = "https://github.com/kornia/kornia-rs.git", rev = "d6a8b15" }
+kornia-apriltag = { git = "https://github.com/kornia/kornia-rs.git", rev = "d6a8b15" }
+kornia-io = { git = "https://github.com/kornia/kornia-rs.git", rev = "d6a8b15", features = [
     "gstreamer",
 ] }
 ctrlc = "3.4"
