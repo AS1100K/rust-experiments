@@ -11,6 +11,9 @@ default-run = "kornia_apriltag_visualization"
 [profile.release]
 debug = true # For performance profiling
 
+[features]
+dhat-heap = ["dep:dhat"]
+
 [dependencies]
 rerun = "0.23"
 # If this branch/commit doesn't exists, then try the main branch because the PR might have been merged
@@ -22,6 +25,7 @@ kornia-io = { git = "https://github.com/kornia/kornia-rs.git", rev = "d6a8b15", 
 ] }
 ctrlc = "3.4"
 rand = "0.9"
+dhat = { version = "0.3.3", optional = true }
 
 [dev-dependencies]
 apriltag = "0.4"
