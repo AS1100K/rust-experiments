@@ -1,5 +1,6 @@
 use criterion::{BenchmarkId, Criterion};
 use kornia_io::jpeg::read_image_jpeg_rgb8;
+use rayon::prelude::*;
 use reqwest::blocking::get;
 use std::{fs::File, io::copy, path::PathBuf};
 use tempfile::{TempDir, tempdir};
@@ -55,13 +56,13 @@ fn benchmark(c: &mut Criterion) {
     for img in &images {
         group.bench_with_input(BenchmarkId::new("WindowIterator", img.1), img.1, |b, _| {
             b.iter(|| {
-                let window_iter = img.0.as_slice().windows(TILE_SIZE * TILE_SIZE);
+                let window_iter = img.0.as_slice().par_windows(TILE_SIZE * TILE_SIZE);
 
-                for window in window_iter {
+                window_iter.for_each(|window| {
                     for px in window {
                         std::hint::black_box(px);
                     }
-                }
+                });
             });
         });
     }
@@ -70,24 +71,27 @@ fn benchmark(c: &mut Criterion) {
     for img in &images {
         group.bench_with_input(BenchmarkId::new("NormalIterator", img.1), img.1, |b, _| {
             b.iter(|| {
-                for px in img.0.as_slice() {
+                img.0.as_slice().par_iter().for_each(|px| {
                     std::hint::black_box(px);
-                }
+                });
             });
         });
     }
 
-    // Chunk based Iterator
+    // // Chunk based Iterator
     for img in &images {
         group.bench_with_input(BenchmarkId::new("ChunckIterator", img.1), img.1, |b, _| {
             b.iter(|| {
-                for y_chunk in img.0.as_slice().chunks(img.0.width()) {
-                    for pxs in y_chunk.chunks(TILE_SIZE) {
-                        for px in pxs {
-                            std::hint::black_box(px);
+                img.0
+                    .as_slice()
+                    .par_chunks(img.0.width())
+                    .for_each(|y_chunk| {
+                        for pxs in y_chunk.chunks(TILE_SIZE) {
+                            for px in pxs {
+                                std::hint::black_box(px);
+                            }
                         }
-                    }
-                }
+                    });
             });
         });
     }
@@ -96,16 +100,16 @@ fn benchmark(c: &mut Criterion) {
     for img in &images {
         group.bench_with_input(BenchmarkId::new("TileIterator", img.1), img.1, |b, _| {
             b.iter(|| {
-                let tile_iter = TileIterator::from_image(&img.0, TILE_SIZE);
+                let tile_iter = TileIterator::from_image(&img.0, TILE_SIZE).into_par_iter();
 
-                for tile in tile_iter {
+                tile_iter.for_each(|tile| {
                     for px_row in tile.as_slice() {
                         let px_row = *px_row;
                         for px in px_row {
                             std::hint::black_box(px);
                         }
                     }
-                }
+                });
             })
         });
     }
